@@ -6,6 +6,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <netdb.h>
+#include <errno.h>
 
 void error(const char *msg) {
 	perror(msg);
@@ -17,13 +18,15 @@ int main(int argc, char *argv[]) {
 		portno,
 		n,
 		count = 0,
+		totalCount = 0,
 		fileCheck = 0,
 		ptFileLength = 0,
-		keyFileLength = 0;
+		keyFileLength = 0,
+		i = 0;
 	struct sockaddr_in serv_addr;
 	struct hostent *server;
 	char c;
-	char buffer[70000];
+	char buffer[1024];
 	FILE *ptfp,
 		 *keyfp;
 
@@ -69,14 +72,16 @@ int main(int argc, char *argv[]) {
 	fseek(keyfp, 0L, SEEK_END);
 	keyFileLength = ftell(keyfp);
 	fseek(keyfp, 0L, SEEK_SET);
+	printf("fileLen: %i\n", ptFileLength);
 	// compare size to ensure the key is at least as large as the plaintext
 	if (ptFileLength > keyFileLength) {
 		fprintf(stderr, "ERROR, key must be as long as plaintext\n");
 		exit(1);
 	}
-
+	
+	bzero(buffer, 1024);
 	count = 0;
-	bzero(buffer, 70000);
+	totalCount = 0;
 	while ((c = fgetc(ptfp)) != EOF) {
 		if (c != '\n') {
 			buffer[count] = c;
@@ -86,16 +91,19 @@ int main(int argc, char *argv[]) {
 			count++;
 		}
 	}
-	n = write(sockfd, buffer, count);
+	
+	n = send(sockfd, buffer, 1024, 0);
+	
 	if (n < 0)
-		error("ERROR writing to socket");
+		error("ERROR writing to socket from client");
 
-	bzero(buffer, 70000);
-	n = read(sockfd, buffer, 255);
-	printf("%s\n", buffer);
+	bzero(buffer, 1024);
+	
+	n = recv(sockfd, buffer, 1024, 0);	
+	printf("strlen: %i\n", strlen(buffer));
+	printf(buffer);
 	if (n < 0)
 		error("ERROR reading from socket");
-
 	close(sockfd);
 	
 	return 0;

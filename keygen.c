@@ -15,8 +15,8 @@ int main(int argc, char *argv[]) {
 	}
 
 	for (i = 0; i < keylength; i++) {
-		randNum = (rand() % 27) + 64;
-		if (randNum == 64) {
+		randNum = (rand() % 27) + 65;
+		if (randNum == 91) {
 			printf("%c", 32);
 		} else {
 			printf("%c", randNum);

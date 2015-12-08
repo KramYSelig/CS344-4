@@ -16,20 +16,21 @@ char getEncryptedValue(char c[2]) {
 		key = 0,
 		result;
 	if (c[0] != 32) {
-		pt = c[0] - 64;
+		pt = c[0] - 65;
 	} else {
-		pt = 0;
+		pt = 26;
 	}
+
 	if (c[1] != 32) {
-		key = c[1] - 64;
+		key = c[1] - 65;
 	} else {
-		key = 0;
+		key = 26;
 	}
 	result = ((pt + key) % 27);
-	if (result == 0) {
+	if (result == 26) {
 		result = 32;
 	} else {
-		result += 64;
+		result += 65;
 	}
 	return result;
 }
@@ -39,13 +40,12 @@ int main(int argc, char *argv[]) {
 		newsockfd,
 		portno,
 		i = 0,
-		returnBufferCount = 0;
+		totalCount = 0;
 	socklen_t clilen;
-	char buffer[256];
-	char returnBuffer[70000];
+	char buffer[1024];
 	struct sockaddr_in serv_addr,
 					   cli_addr;
-	FILE *ctfp;
+	FILE *fp;
 	int n,
 		count = 0,
 		buffSize = 0;
@@ -78,27 +78,25 @@ int main(int argc, char *argv[]) {
 	if (newsockfd < 0)
 		error("ERROR on accept");
 
-	count = 0;
-	n = read(newsockfd, buffer, 255);
+	n = recv(newsockfd, buffer, 1024, 0);
 
-	bzero(returnBuffer, 70000);
-	returnBufferCount = 0;
-	for (i = 0; i < n; i++) {
+	if (n < 0)
+		error("ERROR reading from socket");
+	int pos = 0;
+	for (i = 0; i < strlen(buffer); i++) {
 		if (i % 2 == 0) {
 			c3[0] = buffer[i];
 			c3[1] = buffer[i + 1];
-			returnBuffer[returnBufferCount] = getEncryptedValue(c3);
-			returnBufferCount++;
+			buffer[pos] = getEncryptedValue(c3);
+			pos++;
 		}
 	}
-	
-	if (n < 0)
-		error("ERROR reading from socket");
-	
-	n = write(newsockfd, returnBuffer, 255);
+	buffer[pos] = '\0';
+
+	n = send(newsockfd, buffer, 1024, 0);
 
 	if (n < 0)
-		error("ERROR writing to socket");
+		error("ERROR writing to socket from server");
 	
 	close(newsockfd);
 	close(sockfd);
